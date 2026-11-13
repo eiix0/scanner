@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مسح الدعوات</title>
+<style>
+  body{font-family:system-ui,Tahoma,sans-serif;margin:0;padding:16px;background:#f6f6f4;color:#222;max-width:480px;margin-inline:auto}
+  input,button{font-size:18px;padding:12px;border-radius:10px;border:1px solid #bbb;width:100%;box-sizing:border-box;margin:6px 0}
+  button{background:#1d6b4f;color:#fff;border:0;cursor:pointer}
+  button.sec{background:#666}
+  #reader{width:100%;margin:8px 0}
+  .card{background:#fff;border-radius:14px;padding:16px;margin-top:12px;text-align:center}
+  .big{font-size:40px;font-weight:700;margin:4px 0}
+  .ok{color:#1d6b4f}.bad{color:#b3261e}
+  .row{display:flex;gap:8px}.row>div{flex:1}
+</style>
+</head>
+<body>
+<h2>مسح الدعوات</h2>
+<div id="login">
+  <input id="staff" placeholder="اسم الموظف">
+  <input id="pin" type="password" inputmode="numeric" placeholder="الرقم السري">
+  <button onclick="startApp()">ابدأ</button>
+</div>
+
+<div id="app" hidden>
+  <div id="reader"></div>
+  <input id="manual" placeholder="أو اكتب الرمز يدويًا">
+  <button class="sec" onclick="lookup(document.getElementById('manual').value)">بحث بالرمز</button>
+  <div id="result"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbykhh20_IqQxeb7Y5qmP-S0Kx7ouy9EJEgnsUV0u2uoP6nDUkRdFJ_lJSWAk00j4HBUKA/exec';
+
+let pin='', staff='', busy=false, cur=null, scanner=null;
+const $=id=>document.getElementById(id);
+
+async function call(params){
+  const url=API+'?'+new URLSearchParams(Object.assign({pin},params));
+  const res=await fetch(url);
+  return res.json();
+}
+
+function startApp(){
+  pin=$('pin').value; staff=$('staff').value.trim();
+  if(!pin||!staff){alert('أدخل الاسم والرقم السري');return;}
+  $('login').hidden=true; $('app').hidden=false;
+  scanner=new Html5Qrcode('reader');
+  scanner.start({facingMode:'environment'},{fps:10,qrbox:240},t=>lookup(t),()=>{})
+    .catch(()=>{$('reader').innerHTML='<p class="bad">تعذر فتح الكاميرا. اسمحي للمتصفح بالوصول للكاميرا أو أدخلي الرمز يدويًا.</p>';});
+}
+
+async function lookup(token){
+  token=(token||'').trim().toUpperCase(); if(!token||busy) return;
+  busy=true; cur=token; show('<p>جارٍ التحقق...</p>');
+  try{ render(await call({action:'lookup',token}),false); }catch(e){ fail(e); }
+}
+
+async function confirmIn(){
+  show('<p>جارٍ التسجيل...</p>');
+  try{ render(await call({action:'confirm',token:cur,staff}),true); }catch(e){ fail(e); }
+}
+
+function render(r,after){
+  if(!r.name){ show(`<div class="big bad">${r.msg||'خطأ'}</div>${next()}`); return; }
+  const canEnter=r.ok&&!after&&r.remaining>0;
+  let msg=r.msg?`<div class="big ${r.ok?'ok':'bad'}">${r.msg}</div>`:'';
+  if(!after&&r.ok&&r.remaining<=0) msg='<div class="big bad">اكتمل العدد ❌</div>';
+  show(`${msg}<h3>${r.name}</h3>
+    <div class="row"><div>المسموح<div class="big">${r.total}</div></div>
+    <div>دخلوا<div class="big">${r.used}</div></div>
+    <div>المتبقي<div class="big">${r.remaining}</div></div></div>
+    ${canEnter?'<button onclick="confirmIn()">تأكيد دخول شخص واحد</button>':''}${next()}`);
+}
+
+function fail(e){ show(`<div class="big bad">تعذر الاتصال بالنظام</div>${next()}`); }
+function next(){ return '<button class="sec" onclick="reset()">مسح الدعوة التالية</button>'; }
+function show(h){ $('result').innerHTML=`<div class="card">${h}</div>`; }
+function reset(){ busy=false; cur=null; $('result').innerHTML=''; $('manual').value=''; }
+</script>
+</body>
+</html>
