@@ -33,7 +33,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbykhh20_IqQxeb7Y5qmP-S0Kx7ouy9EJEgnsUV0u2uoP6nDUkRdFJ_lJSWAk00j4HBUKA/exec';
+const API = 'https://script.google.com/macros/s/AKfycbw8ngtgIE5T7QuZs2wQR4LlZ5p-eqoCZAgPzETeNLK6iEndm6HxaYYqlnOxi4wAFYuE/exec';
 
 let pin='', staff='', busy=false, cur=null, scanner=null;
 const $=id=>document.getElementById(id);
@@ -79,6 +79,10 @@ function render(r,after){
 function fail(e){ show(`<div class="big bad">تعذر الاتصال بالنظام</div>${next()}`); }
 function next(){ return '<button class="sec" onclick="reset()">مسح الدعوة التالية</button>'; }
 function show(h){ $('result').innerHTML=`<div class="card">${h}</div>`; }
+function reset(){ busy=false; cur=null; $('result').innerHTML=''; $('manual').value=''; }
+</script>
+</body>
+</html>
 function reset(){ busy=false; cur=null; $('result').innerHTML=''; $('manual').value=''; }
 </script>
 </body>
